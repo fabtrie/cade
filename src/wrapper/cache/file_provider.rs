@@ -6,17 +6,26 @@ use super::provider::CacheProvider;
 
 pub struct FileCacheProvider {
     path: PathBuf,
-    update: bool
+    update: bool,
+    panic_on_cache_content_mismatch: bool
 }
 
 impl FileCacheProvider {
-    pub fn new(path: &Path, update: bool) -> FileCacheProvider {
+    pub fn new(path: &Path, update: bool, panic_on_cache_content_mismatch: bool) -> FileCacheProvider {
         if !path.exists() {
             fs::create_dir_all(path).expect(&format!("Unable to create directory '{}'!", path.to_str().unwrap()));
         }
         FileCacheProvider {
             path: path.to_path_buf(),
-            update: update
+            update: update,
+            panic_on_cache_content_mismatch: panic_on_cache_content_mismatch
+        }
+    }
+
+    fn get_path(&self, category: Option<&str>, key: &str) -> PathBuf {
+        match category {
+            Some(category) => self.path.join(category).join(key),
+            None => self.path.join(key),
         }
     }
 }
@@ -29,7 +38,7 @@ impl CacheProvider for FileCacheProvider {
 
     fn set_entry(&self, category: Option<&str>, key: &str, value: &Vec<u8>) {
         let path = self.get_path(category, key);
-        if path.exists() {
+        if self.panic_on_cache_content_mismatch && path.exists() && category != Some("obj") {
             let input_data = std::fs::read(&path).expect(&format!("Unable to read input file '{}'!", path.to_str().unwrap()));
             if input_data != *value {
                 panic!("content of '{}' does not match expected value! (hash collision?)", path.to_str().unwrap());
@@ -49,16 +58,5 @@ impl CacheProvider for FileCacheProvider {
 
     fn update(&self) -> bool {
         self.update
-    }
-}
-
-impl FileCacheProvider {
-    fn get_path(&self, category: Option<&str>, key: &str) -> PathBuf {
-        let path = match category {
-            Some(category) => self.path.join(category).join(key),
-            None => self.path.join(key),
-        };
-
-        path
     }
 }

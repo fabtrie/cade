@@ -9,12 +9,27 @@ pub enum CacheAccess {
 }
 
 #[derive(Deserialize)]
-pub struct CacheConfig {
-    pub variant: String,
+pub struct FilesystemConfig {
     pub path: String,
     pub access: CacheAccess,
     #[serde(default = "update_on_hit_default")]
     pub update_on_hit: bool
+}
+
+#[derive(Deserialize)]
+pub struct RedisConfig {
+    pub url: String,
+    pub expire: Option<u32>,
+    pub access: CacheAccess,
+    #[serde(default = "update_on_hit_default")]
+    pub update_on_hit: bool
+}
+
+#[derive(Deserialize)]
+#[allow(non_camel_case_types)]
+pub enum CacheConfig {
+    filesystem(FilesystemConfig),
+    redis(RedisConfig)
 }
 
 fn update_on_hit_default() -> bool {
@@ -25,6 +40,18 @@ fn update_on_hit_default() -> bool {
 pub struct WrapperConfig {
     pub base_dir: Option<String>,
     pub cache: Vec<CacheConfig>,
+    #[serde(default = "debug_default")]
+    pub debug: bool,
+    #[serde(default = "panic_on_cache_content_mismatch_default")]
+    pub panic_on_cache_content_mismatch: bool,
+}
+
+fn debug_default() -> bool {
+    false
+}
+
+fn panic_on_cache_content_mismatch_default() -> bool {
+    false
 }
 
 impl WrapperConfig {

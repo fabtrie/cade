@@ -1,4 +1,4 @@
-use std::{io, process::{Output, Command}};
+use std::{io, process::{Command, Output}};
 
 pub trait CacheHandler {
     fn cache_lookup(&mut self, args: &Vec<String>) -> bool;
@@ -9,7 +9,6 @@ pub trait CacheHandler {
     fn get_stderr_key(&self) -> Option<&String>;
 
     fn execute(&mut self, args: &Vec<String>) -> io::Result<Output> {
-        
         let status = Command::new(&args[0])
             .args(&args[1..])
             .output();

@@ -40,9 +40,9 @@ impl DepParser {
                             val += el2;
                             if el2.ends_with('\\') {
                                 val += " ";
-                            } else  if !map.contains(&val) {
+                            } else  if !map.contains(&val.to_lowercase()) {
                                 self.deps.push(val.to_owned());
-                                map.insert(val.to_owned());
+                                map.insert(val.to_lowercase());
                                 val = "".to_owned();
                             } else {
                                 val = "".to_owned();
@@ -52,9 +52,9 @@ impl DepParser {
                     }
                 } else {
                     // escaped
-                    if is_prereq && !map.contains(el) {
+                    if is_prereq && !map.contains(&el.to_lowercase()) {
                         self.deps.push(el.to_owned());
-                        map.insert(el.to_owned());
+                        map.insert(el.to_lowercase());
                     }
                     column += el.len();
                 }
@@ -69,7 +69,7 @@ impl DepParser {
     pub fn update_hash(&self, hasher: &mut Hasher) {
         for dep in &self.deps {
             // dbg!("create hash for: {}", dep);
-            hasher.update(&std::fs::read(dep).expect(&("Unable to read input file (".to_owned() + dep + ")!")));
+            hasher.update(&std::fs::read(dep.replace("\\ ", " ")).expect(&("Unable to read input file (".to_owned() + dep + ")!")));
         }
     }
 

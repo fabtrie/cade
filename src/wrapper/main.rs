@@ -2,12 +2,11 @@ use std::{env, io::{self, Write}, process, path::Path, ffi::OsStr};
 
 use crate::{cache_handler::CacheHandler, cache::cache::Cache};
 
-mod wrapper_config;
+mod config;
 mod cache_handler;
 mod compiler;
 mod hash;
 mod cache;
-mod compression;
 
 fn main() {
     let mut args: Vec<String> = env::args().collect();
@@ -16,8 +15,8 @@ fn main() {
 
     let exe_option = args.get(0);
 
-    let config = wrapper_config::WrapperConfig::new(&".cade".to_owned());
-    let cache: Cache = Cache::new(&config.cache);
+    let config = config::WrapperConfig::new(&".cade".to_owned());
+    let cache: Cache = Cache::new(&config);
 
     match exe_option {
         Some(exe_path) => {
@@ -25,6 +24,9 @@ fn main() {
             let mut cache_handler: Box<dyn CacheHandler>;
             match exe {
                 "gcc" |
+                "g++" |
+                "tricore-gcc" |
+                "tricore-g++" |
                 "cctc"
                 => {
                     cache_handler = Box::new(compiler::compile_handler::Compiler::new(exe, &cache, &config));

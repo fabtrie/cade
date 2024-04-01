@@ -1,7 +1,7 @@
 use std::{path::Path, env, fs, io, process::Output, str};
 use pathdiff::diff_paths;
 
-use crate::{cache_handler::CacheHandler, hash::{hash, Hasher}, cache::cache::Cache, wrapper_config};
+use crate::{cache_handler::CacheHandler, hash::{hash, Hasher}, cache::cache::Cache, config};
 
 use super::{response_file, dep_parser::{self, DepParser}, gcc, tasking};
 
@@ -21,7 +21,7 @@ pub struct Compiler<'a> {
     cache: &'a Cache,
     total_hash: Option<String>,
     source_hash:Option<String>,
-    config: &'a wrapper_config::WrapperConfig
+    config: &'a config::WrapperConfig
 }
 
 struct CompilerArgs {
@@ -154,11 +154,14 @@ fn handle_path_arg(arg: &str, prefix:&str, next_arg: &Option<&String>) -> (bool,
 }
 
 impl<'a> Compiler<'a> {
-    pub fn new(exe_name:&str, cache: &'a Cache, config: &'a wrapper_config::WrapperConfig) -> Compiler<'a> {
+    pub fn new(exe_name:&str, cache: &'a Cache, config: &'a config::WrapperConfig) -> Compiler<'a> {
         // Compiler{name: compiler.get_name()}
         let compiler: Box<dyn CompilerTrait>;
         match exe_name {
-            "gcc"  => { compiler = Box::new(gcc::Gcc{}); },
+            "gcc" |
+            "g++" |
+            "tricore-gcc" |
+            "tricore-g++" => { compiler = Box::new(gcc::Gcc{}); },
             "cctc" => { compiler = Box::new(tasking::Tasking{}); },
             _ => {
                 println!("Unknown compiler");
@@ -261,6 +264,10 @@ impl<'a> Compiler<'a> {
     pub fn set_dep_file(&self, data: &Vec<u8>) {
         let dep_hash = hash(&data);
         self.cache.set_entry(Some("dep"), &self.source_hash.as_ref().unwrap(), &dep_hash.as_bytes().to_vec());
+
+        if self.config.debug {
+            fs::write(self.parsed_args.out_file.as_ref().unwrap().to_owned() + ".cade_dep", data).unwrap();
+        }
 
         self.cache.set_entry(Some("dep"), &dep_hash, &data);
     }
