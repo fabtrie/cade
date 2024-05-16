@@ -12,8 +12,10 @@ pub enum CacheAccess {
 pub struct FilesystemConfig {
     pub path: String,
     pub access: CacheAccess,
-    #[serde(default = "update_on_hit_default")]
-    pub update_on_hit: bool
+    #[serde(default = "bool_true_default")]
+    pub update_on_hit: bool,
+    #[serde(default = "bool_true_default")]
+    pub test_if_update_is_required: bool
 }
 
 #[derive(Deserialize)]
@@ -21,8 +23,10 @@ pub struct RedisConfig {
     pub url: String,
     pub expire: Option<u32>,
     pub access: CacheAccess,
-    #[serde(default = "update_on_hit_default")]
-    pub update_on_hit: bool
+    #[serde(default = "bool_true_default")]
+    pub update_on_hit: bool,
+    #[serde(default = "bool_true_default")]
+    pub test_if_update_is_required: bool
 }
 
 #[derive(Deserialize)]
@@ -32,7 +36,7 @@ pub enum CacheConfig {
     redis(RedisConfig)
 }
 
-fn update_on_hit_default() -> bool {
+fn bool_true_default() -> bool {
     true
 }
 

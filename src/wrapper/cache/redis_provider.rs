@@ -5,21 +5,25 @@ use redis::{Commands, Expiry, RedisError};
 use super::provider::CacheProvider;
 
 pub struct RedisProvider {
+    id: String,
     update: bool,
     panic_on_cache_content_mismatch: bool,
     expire: Option<u32>,
-    client: redis::Client
+    client: redis::Client,
+    test_if_update_is_required: bool
 }
 
 impl RedisProvider {
-    pub fn new(url: &str, update: bool, panic_on_cache_content_mismatch: bool, expire: Option<u32>) -> RedisProvider {
+    pub fn new(id: String, url: &str, update: bool, panic_on_cache_content_mismatch: bool, expire: Option<u32>, test_if_update_is_required: bool) -> RedisProvider {
         let client = redis::Client::open(url).unwrap();
 
         RedisProvider {
+            id: id,
             update: update,
             panic_on_cache_content_mismatch: panic_on_cache_content_mismatch,
             expire: expire,
-            client: client
+            client: client,
+            test_if_update_is_required: test_if_update_is_required
         }
     }
 
@@ -86,5 +90,13 @@ impl CacheProvider for RedisProvider {
 
     fn update(&self) -> bool {
         self.update
+    }
+
+    fn test_if_update_is_required(&self) -> bool {
+        self.test_if_update_is_required
+    }
+
+    fn get_id(&self) -> &str {
+        self.id.as_str()
     }
 }

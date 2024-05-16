@@ -39,53 +39,35 @@ fn main() {
 
             let restored_from_cache = cache_handler.cache_lookup(&args);
 
-            if restored_from_cache {
+            if let Some(provider_id) = restored_from_cache {
                 // dbg!("cache hit");
-                match cache_handler.get_stdout_key() {
-                    Some(key) => {
-                        let entry = cache.get_entry(Some("stdout"), key);
-                        match entry {
-                            Ok(data) => {
-                                match config.base_dir.as_ref() {
-                                    Some(base_dir) => {
-                                        let mut stdout = String::from_utf8(data).unwrap();
-                                        stdout = stdout.replace("%%%BASE_DIR%%%", base_dir);
-                                        io::stdout().write_all(&stdout.as_bytes()).unwrap();
-                                    }
-                                    None => {
-                                        io::stdout().write_all(&data).unwrap();
-                                    }
-                                }
+                if let Some(key) = cache_handler.get_stdout_key() {
+                    if let Ok((data, _)) = cache.get_entry(Some("stdout"), key, Some(&provider_id)) {
+                        match config.base_dir.as_ref() {
+                            Some(base_dir) => {
+                                let mut stdout = String::from_utf8(data).unwrap();
+                                stdout = stdout.replace("%%%BASE_DIR%%%", base_dir);
+                                io::stdout().write_all(&stdout.as_bytes()).unwrap();
                             }
-                            // did not find stdout stored in cache
-                            Err(_) => (),
+                            None => {
+                                io::stdout().write_all(&data).unwrap();
+                            }
                         }
-                    },
-                    // cache handler does not provide stdout
-                    None => (),
+                    }
                 }
-                match cache_handler.get_stderr_key() {
-                    Some(key) => {
-                        let entry = cache.get_entry(Some("stderr"), key);
-                        match entry {
-                            Ok(data) => {
-                                match config.base_dir.as_ref() {
-                                    Some(base_dir) => {
-                                        let mut stderr = String::from_utf8(data).unwrap();
-                                        stderr = stderr.replace("%%%BASE_DIR%%%", base_dir);
-                                        io::stderr().write_all(&stderr.as_bytes()).unwrap();
-                                    }
-                                    None => {
-                                        io::stderr().write_all(&data).unwrap();
-                                    }
-                                }
+                if let Some(key) = cache_handler.get_stderr_key() {
+                    if let Ok((data, _)) = cache.get_entry(Some("stderr"), key, Some(&provider_id)) {
+                        match config.base_dir.as_ref() {
+                            Some(base_dir) => {
+                                let mut stderr = String::from_utf8(data).unwrap();
+                                stderr = stderr.replace("%%%BASE_DIR%%%", base_dir);
+                                io::stderr().write_all(&stderr.as_bytes()).unwrap();
                             }
-                            // did not find stdout stored in cache
-                            Err(_) => (),
+                            None => {
+                                io::stderr().write_all(&data).unwrap();
+                            }
                         }
-                    },
-                    // cache handler does not provide stdout
-                    None => (),
+                    }
                 }
             } else{
                 // dbg!("cache miss");

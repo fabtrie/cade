@@ -1,7 +1,7 @@
 use std::{io, process::{Command, Output}};
 
 pub trait CacheHandler {
-    fn cache_lookup(&mut self, args: &Vec<String>) -> bool;
+    fn cache_lookup(&mut self, args: &Vec<String>) -> Option<String>;
 
     fn cache_push(&mut self);
 

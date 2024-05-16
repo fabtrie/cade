@@ -33,7 +33,7 @@ struct CompilerArgs {
 
 impl<'a> CacheHandler for Compiler<'a> {
 
-    fn cache_lookup(&mut self, args: &Vec<String>) -> bool {
+    fn cache_lookup(&mut self, args: &Vec<String>) -> Option<String> {
         self.parsed_args = self.parse_args(args);
         
         if self.parsed_args.dep_file.is_some() && self.parsed_args.out_file.is_some() && self.parsed_args.source_file.is_some() {
@@ -69,13 +69,13 @@ impl<'a> CacheHandler for Compiler<'a> {
 
                     self.total_hash = Some(self._get_object_hash(&dep));
 
-                    let obj_result = self.cache.get_entry(Some("obj"), self.total_hash.as_ref().unwrap());
+                    let obj_result = self.cache.get_entry(Some("obj"), self.total_hash.as_ref().unwrap(), None);
                     match obj_result {
-                        Ok(obj_data) => {
+                        Ok((obj_data, provider_id)) => {
                             // cache hit. Source file and all dependencies match.
                             // write object file to disk
                             fs::write(self.parsed_args.out_file.as_ref().unwrap(), obj_data).unwrap();
-                            return true;
+                            return Some(provider_id.to_string());
                         },
                         // cache miss. Source file matches but dependencies not.
                         Err(_) => ()
@@ -86,7 +86,7 @@ impl<'a> CacheHandler for Compiler<'a> {
             };
         }
 
-        false
+        None
     }
 
     fn execute_callback(&mut self, _result: &io::Result<Output>) {
@@ -256,20 +256,17 @@ impl<'a> Compiler<'a> {
     }
     
     fn get_dep_file(&self) -> io::Result<Vec<u8>> {
-        self.cache.get_entry(Some("dep"), &self.source_hash.as_ref().unwrap()).and_then(|dep_hash| {
-            self.cache.get_entry(Some("dep"), &String::from_utf8_lossy(&dep_hash))
+        self.cache.get_entry(Some("dep"), &self.source_hash.as_ref().unwrap(), None).and_then(|(dep_data, _)| {
+            Ok(dep_data)
         })
     }
 
     pub fn set_dep_file(&self, data: &Vec<u8>) {
-        let dep_hash = hash(&data);
-        self.cache.set_entry(Some("dep"), &self.source_hash.as_ref().unwrap(), &dep_hash.as_bytes().to_vec());
+        self.cache.set_entry(Some("dep"), &self.source_hash.as_ref().unwrap(), &data);
 
         if self.config.debug {
             fs::write(self.parsed_args.out_file.as_ref().unwrap().to_owned() + ".cade_dep", data).unwrap();
         }
-
-        self.cache.set_entry(Some("dep"), &dep_hash, &data);
     }
 
     pub fn update_hash(&self, hasher: &mut Hasher) {
