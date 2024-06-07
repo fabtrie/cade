@@ -8,6 +8,19 @@ pub enum CacheAccess {
     ReadWrite,
 }
 
+
+#[derive(Deserialize)]
+pub struct LogTypeConfig {
+    pub path: String,
+    #[serde(default = "bool_false_default")]
+    pub append: bool
+}
+#[derive(Deserialize)]
+pub struct LogConfig {
+    pub stderr: Option<LogTypeConfig>,
+    pub stdout: Option<LogTypeConfig>,
+}
+
 #[derive(Deserialize)]
 pub struct FilesystemConfig {
     pub path: String,
@@ -39,6 +52,9 @@ pub enum CacheConfig {
 fn bool_true_default() -> bool {
     true
 }
+fn bool_false_default() -> bool {
+    false
+}
 
 #[derive(Deserialize)]
 pub struct WrapperConfig {
@@ -48,6 +64,7 @@ pub struct WrapperConfig {
     pub debug: bool,
     #[serde(default = "panic_on_cache_content_mismatch_default")]
     pub panic_on_cache_content_mismatch: bool,
+    pub log: Option<LogConfig>
 }
 
 fn debug_default() -> bool {

@@ -11,7 +11,7 @@ pub struct Cache {
 }
 
 impl Cache {
-    pub fn new(config: &config::WrapperConfig) -> Cache {
+    pub fn new(config: &config::WrapperConfig) -> Option<Cache> {
         let mut providers:Vec<Box<dyn CacheProvider + 'static>> = Vec::new();
         let mut id = 0u32;
         for cache_config in &config.cache {
@@ -28,9 +28,13 @@ impl Cache {
             }
             id += 1;
         }
-        Cache {
-            providers: providers
+
+        if providers.len() == 0 {
+            return None;
         }
+        Some(Cache {
+            providers: providers
+        })
     }
 
     pub fn get_entry(&self, category: Option<&str>, key: &str, provider_id: Option<&str>) -> io::Result<(Vec<u8>,&str)> {

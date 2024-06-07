@@ -131,6 +131,15 @@ impl<'a> CacheHandler for Compiler<'a> {
     fn get_stderr_key(&self) -> Option<&String> {
         self.total_hash.as_ref()
     }
+
+    fn resolve_tmpl(&self, tmpl: &str) -> String {
+        let path_str = self.parsed_args.out_file.as_ref().unwrap();
+        let path = Path::new(path_str);
+        tmpl
+        .replace("{obj_folder}", path.parent().unwrap().to_str().unwrap())
+        .replace("{obj_path}", path_str)
+    }
+
 }
 
 fn normalize_path(path: &str) -> String {

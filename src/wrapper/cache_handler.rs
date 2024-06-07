@@ -19,5 +19,9 @@ pub trait CacheHandler {
     }
 
     fn execute_callback(&mut self, _result: &io::Result<Output>) {}
+
+    fn resolve_tmpl(&self, tmpl: &str) -> String {
+        tmpl.to_string()
+    }
 }
 
