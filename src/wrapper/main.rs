@@ -45,24 +45,27 @@ fn main() {
     match exe_option {
         Some(exe_path) => {
             let mut cache_handler: Box<dyn CacheHandler>;
-            if let Some(cache) = cache.as_ref() {
-                let exe =  Path::new(exe_path).file_stem().and_then(OsStr::to_str).expect("could not determine executable");
-                match exe {
-                    "gcc" |
-                    "g++" |
-                    "tricore-gcc" |
-                    "tricore-g++" |
-                    "cctc"
-                    => {
-                        cache_handler = Box::new(compiler::compile_handler::Compiler::new(exe, cache, &config));
-                    }
-                    _ => {
-                        println!("Unknown exe");
-                        std::process::exit(1);
+            let exe =  Path::new(exe_path).file_stem().and_then(OsStr::to_str).expect("could not determine executable");
+            match exe {
+                "gcc" |
+                "g++" |
+                "tricore-gcc" |
+                "tricore-g++" |
+                "cctc"
+                => {
+                    cache_handler = Box::new(compiler::compile_handler::Compiler::new(exe, cache.as_ref(), &config));
+                }
+                _ => {
+                    match cache.as_ref() {
+                        Some(_) => {
+                            println!("disable cache for '{}' or implement a cache handler.", exe);
+                            std::process::exit(1);
+                        }
+                        None => {
+                            cache_handler = Box::new(nocache_handler::NoCacheHandler);
+                        }
                     }
                 }
-            } else {
-                cache_handler = Box::new(nocache_handler::NoCacheHandler);
             }
 
             let restored_from_cache = cache_handler.cache_lookup(&args);
