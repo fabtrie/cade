@@ -68,7 +68,12 @@ impl<'a> CacheHandler for Compiler<'a> {
                         // parse dep file to create hash of all dependencies
                         let dep = dep_parser::DepParser::new(&dep_str);
 
-                        self.total_hash = Some(self._get_object_hash(&dep));
+                        if let Some(hash) = self._get_object_hash(&dep).ok() {
+                            self.total_hash = Some(hash);
+                        } else {
+                            // error creating the hash (e.g. error reading dep file)
+                            return None;
+                        }
 
                         let obj_result = cache.get_entry(Some("obj"), self.total_hash.as_ref().unwrap(), None);
                         match obj_result {
@@ -102,7 +107,13 @@ impl<'a> CacheHandler for Compiler<'a> {
                 match fs::read_to_string(dep_file) {
                     Ok(dep_str) => {
                         let dep = dep_parser::DepParser::new(&dep_str);
-                        self.total_hash = Some(self._get_object_hash(&dep));
+                        match self._get_object_hash(&dep) {
+                            Ok(hash) => self.total_hash = Some(hash),
+                            Err(err) => { 
+                                println!("Error creating hash for object file: {}", err);
+                                std::process::exit(1);
+                            }
+                        }
 
                         let mut dep_file_str = dep.get_dep_file_string();
 
@@ -286,14 +297,13 @@ impl<'a> Compiler<'a> {
         hasher.update(self.parsed_args.processed_args.join("").as_bytes());
     }
 
-    fn _get_object_hash(&self, dep: &DepParser) -> String {
+    fn _get_object_hash(&self, dep: &DepParser) -> Result<String, Box<dyn std::error::Error + 'static>> {
         // Hash an input incrementally.
         let mut hasher = Hasher::new();
         self.update_hash(&mut hasher);
-        dep.update_hash(&mut hasher);
-        let hash2 = hasher.finalize();
-        // println!("{:?}", hash2);
-        hash2
+        dep.update_hash(&mut hasher)?;
+        let hash = hasher.finalize();
+        Ok(hash)
     }
 }
 

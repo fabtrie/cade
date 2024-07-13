@@ -66,11 +66,12 @@ impl DepParser {
         // println!("{}", self.target);
     }
 
-    pub fn update_hash(&self, hasher: &mut Hasher) {
+    pub fn update_hash(&self, hasher: &mut Hasher) -> Result<(), Box<dyn std::error::Error + 'static>> {
         for dep in &self.deps {
             // dbg!("create hash for: {}", dep);
-            hasher.update(&std::fs::read(dep.replace("\\ ", " ")).expect(&("Unable to read input file (".to_owned() + dep + ")!")));
+            hasher.update(&std::fs::read(dep.replace("\\ ", " "))?);
         }
+        Ok(())
     }
 
     // create make dependency file from deps
