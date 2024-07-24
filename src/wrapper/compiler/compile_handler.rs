@@ -1,7 +1,7 @@
 use std::{env, fs, io, path::Path, process::Output, str};
 use pathdiff::diff_paths;
 
-use crate::{cache_handler::CacheHandler, hash::{hash, Hasher}, cache::cache::Cache, config};
+use crate::{cache_handler::CacheHandler, hash::Hasher, cache::cache::Cache, config};
 
 use super::{response_file, dep_parser::{self, DepParser}, gcc, tasking};
 
@@ -20,7 +20,7 @@ pub struct Compiler<'a> {
     parsed_args: CompilerArgs,
     cache: Option<&'a Cache>,
     total_hash: Option<String>,
-    source_hash:Option<String>,
+    dep_hash:Option<String>,
     config: &'a config::WrapperConfig
 }
 
@@ -44,9 +44,11 @@ impl<'a> CacheHandler for Compiler<'a> {
                     Ok(data) => data,
                     Err(_) => { println!("Could not read source file {}.", source_file); std::process::exit(1); }
                 };
-        
-                let source_hash = hash(&source_data);
-                self.source_hash = Some(source_hash);
+
+                let mut dep_hasher = Hasher::new();
+                dep_hasher.update(&source_data);
+                self.update_hash(&mut dep_hasher);
+                self.dep_hash = Some(dep_hasher.finalize());
 
                 let dep_file = self.parsed_args.dep_file.as_ref().unwrap();
 
@@ -197,7 +199,7 @@ impl<'a> Compiler<'a> {
             parsed_args: CompilerArgs{processed_args: Vec::new(), dep_file: None, out_file: None, source_file: None},
             cache: cache,
             total_hash: None,
-            source_hash: None,
+            dep_hash: None,
             config: config
         }
     }
@@ -280,13 +282,13 @@ impl<'a> Compiler<'a> {
     }
     
     fn get_dep_file(&self, cache: &Cache) -> io::Result<Vec<u8>> {
-        cache.get_entry(Some("dep"), &self.source_hash.as_ref().unwrap(), None).and_then(|(dep_data, _)| {
+        cache.get_entry(Some("dep"), &self.dep_hash.as_ref().unwrap(), None).and_then(|(dep_data, _)| {
             Ok(dep_data)
         })
     }
 
     pub fn set_dep_file(&self, data: &Vec<u8>, cache: &Cache) {
-        cache.set_entry(Some("dep"), &self.source_hash.as_ref().unwrap(), &data);
+        cache.set_entry(Some("dep"), &self.dep_hash.as_ref().unwrap(), &data);
 
         if self.config.debug {
             fs::write(self.parsed_args.out_file.as_ref().unwrap().to_owned() + ".cade_dep", data).unwrap();

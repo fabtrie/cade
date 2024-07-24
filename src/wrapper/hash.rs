@@ -1,5 +1,4 @@
-
-
+#[allow(dead_code)]
 pub fn hash(input: &[u8]) -> String {
     blake3::hash(input).to_string()
 }
