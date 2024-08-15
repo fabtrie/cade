@@ -7,7 +7,8 @@ use super::{provider::CacheProvider, file_provider::FileCacheProvider, redis_pro
 /// This is a handler for caching.
 /// its purpose is to abstract the caching part from the rest of the logic
 pub struct Cache {
-    providers: Vec<Box<dyn CacheProvider + 'static>>
+    providers: Vec<Box<dyn CacheProvider + 'static>>,
+    debug: bool
 }
 
 impl Cache {
@@ -33,11 +34,13 @@ impl Cache {
             return None;
         }
         Some(Cache {
-            providers: providers
+            providers: providers,
+            debug: config.debug
         })
     }
 
     pub fn get_entry(&self, category: Option<&str>, key: &str, provider_id: Option<&str>) -> io::Result<(Vec<u8>,&str)> {
+        let mut found_faulty_entry = false;
         for provider in self.providers.iter() {
             if let Some(id) = provider_id {
                 if id != provider.get_id() {
@@ -48,14 +51,30 @@ impl Cache {
             if ret.is_ok() {
                 let data = ret.unwrap();
                 let id = provider.get_id();
-                
-                for provider2 in self.providers.iter() {
-                    if id != provider2.get_id() && provider2.update() && (!provider2.test_if_update_is_required() || !provider2.has_entry(category, key)) {
-                        provider2.set_entry(category, key, &data);
+
+                let decompress_result = zstd::decompress(&data);
+
+                match decompress_result {
+                    Ok(decompressed_data) => {
+                        for provider2 in self.providers.iter() {
+                            if id != provider2.get_id() && provider2.update() && (!provider2.test_if_update_is_required() || !provider2.has_entry(category, key) || found_faulty_entry) {
+                                if self.debug {
+                                    eprintln!("Updating cache provider {} with category {} and key {}", provider2.get_id(), category.unwrap_or("None"), key);
+                                }
+                                provider2.set_entry(category, key, &data);
+                            }
+                        }
+                        return Ok((decompressed_data, provider.get_id()));
+                    }
+                    Err(_) => {
+                        if self.debug {
+                            eprintln!("Faulty entry found in cache provider {} with category {} and key {}", provider.get_id(), category.unwrap_or("None"), key);
+                        }
+                        // delete faulty entry and proceed with next provider
+                        provider.del_entry(category, key);
+                        found_faulty_entry = true;
                     }
                 }
-
-                return Ok((zstd::decompress(&data), provider.get_id()));
             }
         }
         Err(io::Error::new(io::ErrorKind::NotFound, "Not found"))

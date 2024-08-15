@@ -99,4 +99,9 @@ impl CacheProvider for RedisProvider {
     fn get_id(&self) -> &str {
         self.id.as_str()
     }
+    
+    fn del_entry(&self, category: Option<&str>, key: &str) {
+        let mut con = self.client.get_connection().unwrap();
+        let _:() = con.del(self.get_key(category, key)).unwrap();
+    }
 }

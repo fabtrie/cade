@@ -88,4 +88,8 @@ impl CacheProvider for FileCacheProvider {
     fn get_id(&self) -> &str {
         self.id.as_str()
     }
+    
+    fn del_entry(&self, category: Option<&str>, key: &str) {
+        let _ = fs::remove_file(self.get_path(category, key));
+    }
 }

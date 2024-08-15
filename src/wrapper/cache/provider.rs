@@ -9,6 +9,8 @@ pub trait CacheProvider {
 
     fn has_entry(&self, category: Option<&str>, key: &str) -> bool;
 
+    fn del_entry(&self, category: Option<&str>, key: &str);
+
     fn update(&self) -> bool;
 
     fn test_if_update_is_required(&self) -> bool;

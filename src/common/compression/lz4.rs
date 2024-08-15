@@ -1,4 +1,4 @@
-use std::io::{Write, Read};
+use std::io::{self, Read, Write};
 
 use lz4::EncoderBuilder;
 
@@ -17,9 +17,9 @@ pub fn compress(data: &Vec<u8>) -> Vec<u8> {
 
 // decompress binary data using lz4
 #[allow(dead_code)]
-pub fn decompress(data: &Vec<u8>) -> Vec<u8> {
-    let mut decoder = lz4::Decoder::new(&data[..]).unwrap();
+pub fn decompress(data: &Vec<u8>) -> io::Result<Vec<u8>> {
+    let mut decoder = lz4::Decoder::new(&data[..])?;
     let mut decompressed = Vec::new();
-    decoder.read_to_end(&mut decompressed).unwrap();
-    decompressed
+    decoder.read_to_end(&mut decompressed)?;
+    Ok(decompressed)
 }
