@@ -1,5 +1,4 @@
-use std::{env, fs, io, path::Path, process::Output, str};
-use pathdiff::diff_paths;
+use std::{fs, io, path::Path, process::Output, str};
 
 use crate::{cache_handler::CacheHandler, hash::Hasher, cache::cache::Cache, config};
 
@@ -159,15 +158,6 @@ impl<'a> CacheHandler for Compiler<'a> {
 
 }
 
-fn normalize_path(path: &str) -> String {
-    // TODO decide weather to use the base_dir option or env::current_dir()
-    if Path::new(path).is_absolute() {
-        diff_paths(path, env::current_dir().unwrap()).unwrap().to_str().unwrap().replace("\\", "/")
-    } else {
-        path.to_owned()
-    }
-}
-
 fn handle_path_arg(arg: &str, prefix:&str, next_arg: &Option<&String>) -> (bool, String) {
     let mut path =arg.strip_prefix(prefix).unwrap();
     let mut skip_next = false;
@@ -176,7 +166,7 @@ fn handle_path_arg(arg: &str, prefix:&str, next_arg: &Option<&String>) -> (bool,
         skip_next = true;
     }
 
-    return (skip_next, normalize_path(path));
+    return (skip_next, path.to_owned());
 }
 
 impl<'a> Compiler<'a> {
@@ -296,7 +286,15 @@ impl<'a> Compiler<'a> {
     }
 
     pub fn update_hash(&self, hasher: &mut Hasher) {
-        hasher.update(self.parsed_args.processed_args.join("").as_bytes());
+        let mut all_args = self.parsed_args.processed_args.join("").to_string();
+        if let Some(base_dir) = self.config.base_dir.as_ref() {
+            all_args = all_args.replace(base_dir, "");
+        }
+        if self.config.debug {
+            println!("all_args: {}", all_args);
+        }
+
+        hasher.update(all_args.as_bytes());
     }
 
     fn _get_object_hash(&self, dep: &DepParser) -> Result<String, Box<dyn std::error::Error + 'static>> {
